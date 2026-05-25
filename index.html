@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Swarm 一人公司最佳實踐 —— GStack 專案實戰解析</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/night.css" />
+  <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
+  <style>
+    /* ===== 全域變數 ===== */
+    :root {
+      --accent:  #e8643a;
+      --accent2: #4fc3f7;
+      --success: #81c784;
+      --warn:    #ffb74d;
+    }
+    .reveal {
+      font-family: 'Segoe UI', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+    }
+    .reveal h1, .reveal h2, .reveal h3 {
+      font-family: 'Segoe UI', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .reveal h1 { font-size: 2.1em; }
+    .reveal h2 { font-size: 1.45em; color: var(--accent2); }
+    .reveal .progress { color: var(--accent); }
+    .reveal .fragment { opacity: 0.15; transition: opacity 0.3s; }
+    .reveal .fragment.visible { opacity: 1; }
+
+    /* ===== 封面 ===== */
+    .title-slide { text-align: center; }
+    .title-slide .tag {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      padding: 4px 16px;
+      border-radius: 20px;
+      font-size: 0.52em;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.9em;
+      font-weight: 600;
+    }
+    .title-slide h1 { color: #fff; font-size: 1.9em; line-height: 1.25; }
+    .title-slide .subtitle {
+      font-size: 0.72em;
+      color: var(--accent2);
+      margin-top: 0.3em;
+      font-weight: 600;
+    }
+    .title-slide .author { margin-top: 2em; font-size: 0.46em; color: #888; }
+
+    /* ===== 統計數字卡 ===== */
+    .stat-row { display: flex; gap: 16px; justify-content: center; margin-top: 0.8em; }
+    .stat-card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 18px 22px;
+      text-align: center;
+      flex: 1;
+    }
+    .stat-card .num   { font-size: 1.7em; font-weight: 800; color: var(--accent); line-height: 1; }
+    .stat-card .label { font-size: 0.4em; color: #ccc; margin-top: 6px; line-height: 1.5; }
+
+    /* ===== 優勢卡（3欄）===== */
+    .adv-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 0.7em;
+    }
+    .adv-card {
+      background: rgba(255,255,255,0.05);
+      border-top: 4px solid var(--accent2);
+      border-radius: 10px;
+      padding: 20px 16px;
+      text-align: center;
+    }
+    .adv-card .adv-icon {
+      font-size: 2.2em;
+      margin-bottom: 12px;
+      display: block;
+      filter: drop-shadow(0 0 10px rgba(79,195,247,0.5));
+    }
+    .adv-card .adv-title { font-size: 0.52em; font-weight: 700; color: var(--accent2); margin-bottom: 8px; }
+    .adv-card .adv-desc  { font-size: 0.38em; color: #bbb; line-height: 1.7; }
+
+    /* ===== 引用框 ===== */
+    .quote-box {
+      background: rgba(255,255,255,0.05);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 18px 22px;
+      margin: 0.7em 0;
+      font-size: 0.56em;
+      color: #ddd;
+      font-style: italic;
+      line-height: 1.7;
+    }
+    .quote-author {
+      font-size: 0.4em;
+      color: #888;
+      text-align: right;
+      margin-top: 8px;
+      font-style: normal;
+    }
+
+    /* ===== 流程步驟 ===== */
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-top: 0.7em;
+    }
+    .flow-step {
+      background: rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 14px 8px;
+      text-align: center;
+      position: relative;
+    }
+    .flow-step::after {
+      content: '→';
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255,255,255,0.3);
+      font-size: 14px;
+    }
+    .flow-step:last-child::after { display: none; }
+    .flow-step .step-icon { font-size: 1.5em; display: block; margin-bottom: 6px; }
+    .flow-step .step-name {
+      font-size: 0.38em;
+      font-weight: 700;
+      color: var(--accent2);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .flow-step .step-cmd {
+      font-size: 0.3em;
+      color: #888;
+      font-family: monospace;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .flow-step .step-desc { font-size: 0.3em; color: #aaa; line-height: 1.5; }
+
+    /* ===== 結論卡 ===== */
+    .conclusion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 0.7em; }
+    .conclusion-card { border-radius: 10px; padding: 18px; font-size: 0.42em; }
+    .conclusion-card.positive {
+      background: rgba(79,195,247,0.1);
+      border: 1px solid rgba(79,195,247,0.3);
+    }
+    .conclusion-card.caution {
+      background: rgba(255,183,77,0.09);
+      border: 1px solid rgba(255,183,77,0.28);
+    }
+    .conclusion-card .cc-title { font-size: 1.3em; font-weight: 700; margin-bottom: 10px; }
+    .conclusion-card.positive .cc-title { color: var(--accent2); }
+    .conclusion-card.caution  .cc-title { color: var(--warn); }
+    .conclusion-card ul { list-style: none; padding: 0; margin: 0; color: #ccc; line-height: 2; }
+    .conclusion-card ul li::before { content: "→ "; opacity: 0.5; }
+
+    /* ===== 封底 ===== */
+    .end-slide { text-align: center; }
+    .end-slide .big-icon { font-size: 3.5em; margin-bottom: 0.2em; }
+    .end-slide .tagline  { font-size: 0.6em; color: #aaa; margin-top: 0.6em; line-height: 1.8; }
+    .end-slide .cta {
+      display: inline-block;
+      margin-top: 1.2em;
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 28px;
+      border-radius: 24px;
+      font-size: 0.52em;
+      font-weight: 700;
+      font-family: monospace;
+      letter-spacing: 0.04em;
+    }
+
+    /* ===== SKILL DNA 清單 ===== */
+    .dna-list { margin-top: 0.6em; }
+    .dna-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent2);
+    }
+    .dna-num {
+      flex: 0 0 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent2);
+      color: #0d1117;
+      font-weight: 800;
+      font-size: 0.45em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .dna-text { flex: 1; font-size: 0.42em; color: #ccc; line-height: 1.6; }
+    .dna-text strong { color: var(--accent2); }
+
+    /* ===== VIZ 滑桿 ===== */
+    #viz-slider {
+      -webkit-appearance: none;
+      width: 80%;
+      height: 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+      outline: none;
+      margin: 14px auto 0;
+      display: block;
+    }
+    #viz-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent2);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(79,195,247,0.7);
+    }
+
+    /* ===== LIVE 動畫 ===== */
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    /* ===== 霓虹光點背景動畫（BG 替代）===== */
+    .bg-glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.18;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <!-- ============================================================ -->
+    <!-- Slide 1：封面 [BG gradient]                                  -->
+    <!-- ============================================================ -->
+    <section
+      data-background-gradient="radial-gradient(ellipse at 30% 40%, #1a1535 0%, #0d1117 65%)"
+      style="position:relative; overflow:hidden;">
+      <!-- 霓虹光暈裝飾 -->
+      <div class="bg-glow" style="width:400px;height:400px;background:#4fc3f7;top:-80px;right:-60px;"></div>
+      <div class="bg-glow" style="width:300px;height:300px;background:#e8643a;bottom:-60px;left:-40px;"></div>
+      <div class="title-slide">
+        <div class="tag">2026 · Agent Swarm 實戰工作坊</div>
+        <h1>Agent Swarm<br>一人公司最佳實踐</h1>
+        <p class="subtitle">—— GStack 專案實戰解析</p>
+        <p style="font-size:0.48em; color:#aaa; margin-top:1.2em; line-height:1.8;">
+          模型是原物料，Harness 才是護城河<br>
+          <span style="color:var(--accent);">28 個虛擬員工 · 7 步閉環工作流 · 60天 60萬行程式碼</span>
+        </p>
+        <p class="author">Powered by Claude Code · GStack by Garry Tan (YC)</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Slide 2：破冰文字雲 [INTERACT:wordcloud]                     -->
+    <!-- ============================================================ -->
+    <section id="slide-wordcloud">
+      <h2 style="font-size:1.05em; margin-bottom:0.35em;">
+        🤔 你現在最常讓 AI 幫你做什麼？
+      </h2>
+      <div style="display:grid; grid-template-columns:240px 1fr; gap:14px; height:440px;">
+
+        <!-- 左欄：輸入 + 排行 -->
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background:rgba(255,255,255,0.06); border-radius:10px; padding:14px;">
+            <div style="font-size:0.38em; color:var(--accent2); font-weight:700; margin-bottom:8px;">輸入你的答案</div>
+            <input id="wc-input" type="text" placeholder="如：寫程式、改文章…" maxlength="20"
+              style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid rgba(79,195,247,0.3);
+                     background:rgba(255,255,255,0.08); color:#fff; font-size:13px;
+                     box-sizing:border-box; font-family:inherit; outline:none;" />
+            <button id="wc-btn"
+              style="width:100%; margin-top:8px; padding:9px; background:var(--accent2); color:#0d1117;
+                     border:none; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer;">
+              送出 ↵
+            </button>
+          </div>
+          <div style="background:rgba(255,255,255,0.06); border-radius:10px; padding:14px; flex:1; overflow:hidden; display:flex; flex-direction:column;">
+            <div style="font-size:0.36em; color:var(--accent2); font-weight:700; margin-bottom:8px;">
+              熱門答案
+              <span style="display:inline-block; background:#ff4757; color:#fff; padding:2px 7px;
+                           border-radius:10px; font-size:0.85em; animation:pulse 1.5s infinite; margin-left:4px;">LIVE</span>
+            </div>
+            <div id="wc-list" style="font-size:0.34em; overflow-y:auto; flex:1; color:#ccc;"></div>
+            <div style="margin-top:8px; font-size:0.3em; color:#666; border-top:1px solid rgba(255,255,255,0.08); padding-top:6px;">
+              總提交：<span id="wc-total" style="color:var(--accent); font-weight:700;">0</span>
+              不同答案：<span id="wc-unique" style="color:var(--accent2); font-weight:700;">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右欄：文字雲 -->
+        <div style="background:rgba(255,255,255,0.04); border-radius:12px; overflow:hidden;
+                    position:relative; border:1px solid rgba(255,255,255,0.07);">
+          <canvas id="wc-canvas" style="width:100%; height:100%; display:block;"></canvas>
+          <div id="wc-empty" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+                                     color:#444; font-size:0.42em; text-align:center;
+                                     pointer-events:none; line-height:2.2;">
+            輸入第一個答案<br>文字雲就會出現 ✨
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Slide 3：破題 —— 十億美元時代 [BG gradient]                 -->
+    <!-- ============================================================ -->
+    <section
+      data-background-gradient="radial-gradient(ellipse at 70% 30%, #0d2a1a 0%, #0d1117 60%)"
+      style="position:relative; overflow:hidden;">
+      <div class="bg-glow" style="width:350px;height:350px;background:#81c784;top:-60px;right:-40px;"></div>
+      <h2>迎接「一人公司」的十億美元時代</h2>
+
+      <div class="quote-box fragment">
+        「不遠的未來，一個人就能打造市值十億美元的公司。」
+        <div class="quote-author">—— Sam Altman (OpenAI CEO) &amp; Dario Amodei (Anthropic CEO)</div>
+      </div>
+
+      <div class="stat-row fragment">
+        <div class="stat-card">
+          <div class="num">1<span style="font-size:0.45em">人</span></div>
+          <div class="label">如同 CEO<br>指揮整個虛擬產品團隊</div>
+        </div>
+        <div class="stat-card">
+          <div class="num">28<span style="font-size:0.45em">個</span></div>
+          <div class="label">虛擬員工角色<br>PM · 架構師 · QA · CSO</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" style="color:var(--accent2);">∞</div>
+          <div class="label">並行任務數<br>Conductor 多線程模式</div>
+        </div>
+      </div>
+
+      <p class="fragment" style="font-size:0.44em; color:#aaa; margin-top:0.8em; line-height:1.7;">
+        核心典範轉移：不再是「一個人與 ChatGPT 聊天」，<br>
+        而是<strong style="color:var(--accent);">管理一組由專業 AI 組成的智能體蜂群（Agent Swarm）</strong>
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Slide 4：什麼是 Agent Harness？                              -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>什麼是 Agent Harness（代理套件）？</h2>
+
+      <div class="quote-box">
+        「模型是原物料，Harness 才是護城河。」<br>
+        <span style="font-size:0.85em;">AI 引擎再強大，也需要方向盤與煞車來約束產出。</span>
+        <div class="quote-author">—— GStack 核心業界洞察</div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:0.6em;">
+        <div class="fragment" style="background:rgba(255,255,255,0.05); border-radius:10px; padding:16px;">
+          <div style="font-size:0.44em; font-weight:700; color:var(--accent2); margin-bottom:8px;">📦 GStack 是什麼</div>
+          <ul style="font-size:0.38em; color:#ccc; line-height:2; list-style:none; padding:0; margin:0;">
+            <li>✦ Y Combinator CEO Garry Tan 開源</li>
+            <li>✦ 目前最完整的 Agent Harness 實戰樣本</li>
+            <li>✦ 純 Markdown + Claude Code 技能組</li>
+            <li>✦ 無需複雜程式碼框架</li>
+          </ul>
+        </div>
+        <div class="fragment" style="background:rgba(255,255,255,0.05); border-radius:10px; padding:16px;">
+          <div style="font-size:0.44em; font-weight:700; color:var(--accent); margin-bottom:8px;">🏢 虛擬公司化</div>
+          <ul style="font-size:0.38em; color:#ccc; line-height:2; list-style:none; padding:0; margin:0;">
+            <li>✦ 28 個 SKILL.md = 28 個虛擬員工</li>
+            <li>✦ 每個角色有明確邊界與職責</li>
+            <li>✦ Markdown 定義，自然語言觸發</li>
+            <li>✦ 可隨時擴充新角色</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Slide 5：GStack 三大設計哲學 [ICON]                         -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>GStack 三大設計哲學</h2>
+      <div class="adv-grid-3">
+        <div class="adv-card fragment">
+          <span class="adv-icon">🎯</span>
+          <div class="adv-title">角色即約束<br><span style="color:#888;font-weight:400;">Role as Constraint</span></div>
+          <div class="adv-desc">
+            給予 AI 嚴格邊界，避免讓它當通才。<br>
+            程式碼審查員只找 Bug，不重構風格。<br>
+            <strong style="color:var(--accent2);">越窄的邊界，越高的可靠度。</strong>
+          </div>
+        </div>
+        <div class="adv-card fragment">
+          <span class="adv-icon" style="filter:drop-shadow(0 0 12px rgba(232,100,58,0.6));">🔥</span>
+          <div class="adv-title" style="color:var(--accent);">把湖燒開<br><span style="color:#888;font-weight:400;">Boil the Lake</span></div>
+          <div class="adv-desc">
+            AI 輔助下，80 行與 150 行的成本差距→零。<br>
+            永遠選擇 100% 的完整解決方案，<br>
+            <strong style="color:var(--accent);">拒絕走捷徑。</strong>
+          </div>
+        </div>
+        <div class="adv-card fragment">
+          <span class="adv-icon">🔍</span>
+          <div class="adv-title">造之前先搜<br><span style="color:#888;font-weight:400;">Search Before Building</span></div>
+          <div class="adv-desc">
+            先理解業界久經考驗的常識（Layer 1），<br>
+            只在必要時才用第一性原理創新（Layer 3）。<br>
+            <strong style="color:var(--accent2);">避免重新發明輪子。</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Slide 6：七步閉環工作流                                      -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>實戰演練 —— 七步閉環工作流</h2>
+      <p style="font-size:0.4em; color:#888; margin-bottom:0.5em;">每一步的輸出都是下一步的輸入，形成完整的流水線</p>
+      <div class="flow-grid">
+        <div class="flow-step fragment">
+          <span class="step-icon">💡</span>
+          <span class="step-name">Think</span>
+          <span class="step-cmd">/office-hours</span>
+          <span class="step-desc">6 個靈魂拷問<br>產出設計文檔</span>
+        </div>
+        <div class="flow-step fragment">
+          <span class="step-icon">📋</span>
+          <span class="step-name">Plan</span>
+          <span class="step-cmd">/plan-ceo-review</span>
+          <span class="step-desc">CEO 視角審視<br>範圍 + 架構矩陣</span>
+        </div>
+        <div class="flow-step fragment">
+          <span class="step-icon">⚙️</span>
+          <span class="step-name">Build</span>
+          <span class="step-cmd">AI 生成</span>
+          <span class="step-desc">基於設計文檔<br>生成可運行程式碼</span>
+        </div>
+        <div class="flow-step fragment">
+          <span class="step-icon">🔍</span>
+          <span class="step-name">Review</span>
+          <span class="step-cmd">/code-review</span>
+          <span class="step-desc">偏執工程師<br>尋找深層 Bug</span>
+        </div>
+        <div class="flow-step fragment">
+          <span class="step-icon">🛡️</span>
+          <span class="step-name">Test</span>
+          <span class="step-cmd">/cso · /qa</span>
+          <span class="step-desc">OWASP 安全審計<br>真實瀏覽器測試</span>
+        </div>
+        <div class="flow-step fragment">
+          <span class="step-icon">🚀</span>
+          <span class="step-name">Ship</span>
+          <span class="step-cmd">/create-pr</span>
+          <span class="step-desc">自動建立 PR<br>發布版本</span>
+        </div>
+        <div class="flow-step fragment">
+          <span class="step-icon">📊</span>
+          <span class="step-name">Reflect</span>
+          <span class="step-cmd">/weekly</span>
+          <span class="step-desc">週度復盤<br>持續優化</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Slide 7：單線程 vs Conductor 並行 [VIZ]                     -->
+    <!-- ============================================================ -->
+    <section>
+      <h2 style="font-size:1.1em; margin-bottom:0.3em;">效率放大器 —— Conductor 多線程並行模式</h2>
+      <p style="font-size:0.38em; color:#888; margin-bottom:0.4em; text-align:center;">拖動滑桿，對比單線程與並行模式的工作方式</p>
+
+      <div style="position:relative; height:360px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">
+
+        <!-- BEFORE：傳統單線程 -->
+        <div id="viz-before" style="position:absolute;inset:0;
+          background:linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+          padding:24px 28px;">
+          <div style="font-size:0.5em; font-weight:700; color:var(--warn); margin-bottom:14px; letter-spacing:0.05em;">
+            ⏳ 傳統單線程工作模式
+          </div>
+          <div style="font-size:0.36em; color:#aaa; line-height:2.2;">
+            <div style="margin-bottom:6px;">▸ 一個對話視窗，任務序列執行</div>
+            <div style="margin-bottom:6px;">▸ 等待每個步驟完成才能進行下一步</div>
+            <div style="margin-bottom:6px;">▸ Think → （等待）→ Plan → （等待）→ Build</div>
+            <div style="margin-bottom:6px;">▸ 60 天內完成 <span style="color:#666;">~5 萬行</span>程式碼</div>
+            <div style="margin-bottom:6px;">▸ Context 被單一對話串佔滿</div>
+            <div style="margin-bottom:6px;">▸ 一個問題卡住 = 整個流程卡住</div>
+          </div>
+          <div style="position:absolute; bottom:16px; left:28px; font-size:0.32em; color:#555;">
+            😓 瓶頸：人是最慢的節點
+          </div>
+        </div>
+
+        <!-- AFTER：Conductor 並行 -->
+        <div id="viz-after" style="position:absolute;inset:0;
+          background:linear-gradient(135deg, #0d1a2e 0%, #0d1117 100%);
+          clip-path:inset(0 100% 0 0);
+          padding:24px 28px;">
+          <div style="font-size:0.5em; font-weight:700; color:var(--accent2); margin-bottom:14px; letter-spacing:0.05em;">
+            ⚡ Conductor 多線程並行模式
+          </div>
+          <div style="font-size:0.36em; color:#aaa; line-height:2.2;">
+            <div style="margin-bottom:6px;">▸ 多個 Claude Code 會話同步運行</div>
+            <div style="margin-bottom:6px;">▸ 產品思考 ‖ 安全審計 ‖ 前端開發 — 同時進行</div>
+            <div style="margin-bottom:6px;">▸ 各 Agent 擁有獨立 Git 分支，原子提交</div>
+            <div style="margin-bottom:6px;">▸ 60 天內完成 <span style="color:var(--success); font-weight:700;">60 萬行</span>生產環境程式碼</div>
+            <div style="margin-bottom:6px;">▸ 互不干擾，失敗隔離</div>
+            <div style="margin-bottom:6px;">▸ 你專注在最高槓桿決策</div>
+          </div>
+          <div style="position:absolute; bottom:16px; left:28px; font-size:0.32em; color:var(--accent2);">
+            🚀 產出：10× 效率提升（Garry Tan 親身驗證）
+          </div>
+        </div>
+
+        <!-- 霓虹分隔線 -->
+        <div id="viz-divider" style="position:absolute;top:0;left:0;width:3px;height:100%;
+          background:linear-gradient(to bottom, transparent, var(--accent2), transparent);
+          box-shadow:0 0 14px var(--accent2);
+          pointer-events:none; transition:left 0.01s;"></div>
+
+        <!-- 左右標籤 -->
+        <div id="viz-label-before" style="position:absolute;top:8px;left:12px;
+          font-size:0.32em; color:var(--warn); font-weight:700; pointer-events:none;
+          background:rgba(0,0,0,0.5); padding:2px 8px; border-radius:4px;">單線程</div>
+        <div id="viz-label-after" style="position:absolute;top:8px;right:12px;
+          font-size:0.32em; color:var(--accent2); font-weight:700; pointer-events:none;
+          background:rgba(0,0,0,0.5); padding:2px 8px; border-radius:4px;">並行模式</div>
+      </div>
+
+      <input id="viz-slider" type="range" min="0" max="100" value="0" />
+      <p style="text-align:center; font-size:0.35em; color:#555; margin-top:6px;">← 拖動滑桿揭露對比</p>
+
+      <script>
+        document.getElementById('viz-slider').addEventListener('input', function() {
+          const v = +this.value;
+          document.getElementById('viz-after').style.clipPath = `inset(0 ${100-v}% 0 0)`;
+          document.getElementById('viz-divider').style.left = v + '%';
+          const lblBefore = document.getElementById('viz-label-before');
+          const lblAfter  = document.getElementById('viz-label-after');
+          lblBefore.style.opacity = v > 85 ? (100 - v) / 15 + '' : '1';
+          lblAfter.style.opacity  = v < 15 ? v / 15 + ''          : '1';
+        });
+      </script>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Slide 8：擴充你的虛擬團隊                                    -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>擴充你的虛擬團隊 — 自定義 SKILL.md</h2>
+      <p style="font-size:0.42em; color:#aaa; margin-bottom:0.5em;">
+        GStack 最大價值：提供一套「如何定義 AI 協作角色」的<strong style="color:var(--accent2);">標準範本</strong>
+      </p>
+
+      <div class="dna-list">
+        <div class="dna-item fragment">
+          <div class="dna-num">1</div>
+          <div class="dna-text"><strong>角色身分</strong>（我是誰）— 用一句話定義職責邊界，例如：「我是專注於 OWASP Top 10 的安全審計員」</div>
+        </div>
+        <div class="dna-item fragment">
+          <div class="dna-num">2</div>
+          <div class="dna-text"><strong>約束條件</strong>（我不能做什麼）— 明確禁止越界，例如：「不重構程式碼，只回報漏洞位置與建議」</div>
+        </div>
+        <div class="dna-item fragment">
+          <div class="dna-num">3</div>
+          <div class="dna-text"><strong>產出格式</strong>（我輸出什麼）— 定義交付物，例如：嚴重性分級的安全報告 Markdown 表格</div>
+        </div>
+        <div class="dna-item fragment">
+          <div class="dna-num">4</div>
+          <div class="dna-text"><strong>觸發條件</strong>— 何時呼叫此角色，例如：「每次 Ship 步驟前必須執行」</div>
+        </div>
+        <div class="dna-item fragment">
+          <div class="dna-num">5</div>
+          <div class="dna-text"><strong>設計哲學引用</strong>— 連結到三大哲學，確保角色行為與整體工作流一致</div>
+        </div>
+      </div>
+      <p class="fragment" style="font-size:0.38em; color:var(--accent); margin-top:0.6em; text-align:center;">
+        ✦ 只要能用自然語言描述專業邊界，隨時可以招募：資料分析師、法律顧問、行銷專家…
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Slide 9：你的 AI 投入預算？ [INTERACT:poll]                  -->
+    <!-- ============================================================ -->
+    <section id="slide-poll">
+      <h2 style="font-size:1.1em; margin-bottom:0.3em;">💰 你的 AI 工具月預算落在哪？</h2>
+      <p style="font-size:0.38em; color:#888; margin-bottom:0.6em;">（單選，即時顯示全場分佈）</p>
+      <div id="poll-options" style="display:flex; flex-direction:column; gap:12px; margin-top:0.4em;"></div>
+      <div style="font-size:0.36em; color:#666; text-align:center; margin-top:0.8em;">
+        已投票：<span id="poll-total" style="color:var(--accent); font-weight:700;">0</span> 人
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Slide 10：成本考量與真實局限                                  -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>成本考量與真實局限</h2>
+      <div class="conclusion-grid">
+        <div class="conclusion-card caution fragment">
+          <div class="cc-title">⚠️ Token 消耗大</div>
+          <ul>
+            <li>多線程並發極耗 Token</li>
+            <li>單任務可能消耗 5 萬+ Token</li>
+            <li>強烈建議 Claude Max 方案</li>
+            <li>或採用 API 按量計費</li>
+          </ul>
+        </div>
+        <div class="conclusion-card caution fragment">
+          <div class="cc-title">📈 學習與適用門檻</div>
+          <ul>
+            <li>28 個指令的學習曲線</li>
+            <li>強制流程較嚴謹</li>
+            <li>不適合快速原型開發</li>
+            <li>極適合高質量 SaaS 上線</li>
+          </ul>
+        </div>
+        <div class="conclusion-card positive fragment">
+          <div class="cc-title">✅ 最適合的場景</div>
+          <ul>
+            <li>需要長期維護的 SaaS 產品</li>
+            <li>有安全合規要求的專案</li>
+            <li>Solo Founder 想系統化交付</li>
+            <li>希望建立 AI 協作標準化流程</li>
+          </ul>
+        </div>
+        <div class="conclusion-card positive fragment">
+          <div class="cc-title">🚀 可期待的回報</div>
+          <ul>
+            <li>60 天兼職 → 60 萬行程式碼</li>
+            <li>產出品質媲美小型工程師團隊</li>
+            <li>流程可複製、可傳授</li>
+            <li>護城河來自流程，不來自模型</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Slide 11：總結與行動號召 [BG gradient]                       -->
+    <!-- ============================================================ -->
+    <section
+      data-background-gradient="radial-gradient(ellipse at 50% 80%, #2a0d0d 0%, #0d1117 60%)"
+      style="position:relative; overflow:hidden;">
+      <div class="bg-glow" style="width:500px;height:500px;background:#e8643a;bottom:-120px;left:50%;transform:translateX(-50%);opacity:0.12;"></div>
+      <div class="end-slide">
+        <div class="big-icon">🐝</div>
+        <h1 style="color:var(--accent2); font-size:1.7em; line-height:1.2;">
+          約束 AI 的能力<br>比使用 AI 的能力更稀缺
+        </h1>
+        <p class="tagline">
+          2026 年，AI 工具已準備好。<br>
+          模型不是護城河——<strong style="color:var(--accent);">你的流程才是。</strong>
+        </p>
+        <div class="cta">git clone gstack &amp;&amp; ./setup → /office-hours</div>
+        <p style="font-size:0.36em; color:#666; margin-top:1em;">
+          ⭐ github.com/garrytan/gstack　·　30 秒安裝　·　立即開啟第一次產品衝刺
+        </p>
+      </div>
+    </section>
+
+  </div><!-- /slides -->
+</div><!-- /reveal -->
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    transition: 'slide',
+    transitionSpeed: 'default',
+    backgroundTransition: 'fade',
+    center: true,
+    progress: true,
+    controls: true,
+    slideNumber: 'c/t',
+    plugins: []
+  });
+</script>
+
+<!-- ========================================================== -->
+<!-- Firebase：文字雲 + 投票（共用同一個 initializeApp）        -->
+<!-- ========================================================== -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+  import {
+    getFirestore,
+    collection, addDoc, onSnapshot, query, orderBy,
+    doc, setDoc, serverTimestamp
+  } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAYQhNavPSce17XtvDC5xnXyl9iUhW9KjA",
+    authDomain: "teacherstudy-109ef.firebaseapp.com",
+    projectId: "teacherstudy-109ef",
+    storageBucket: "teacherstudy-109ef.firebasestorage.app",
+    messagingSenderId: "196599230156",
+    appId: "1:196599230156:web:cfe55d364df3ae1b9d5c69"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const fdb = getFirestore(app);
+
+  /* ─────────────────────────────────────
+     ① 文字雲
+  ───────────────────────────────────── */
+  const wordsRef = collection(fdb, 'agent_swarm_gstack_wordcloud');
+  const COLORS   = ['#4fc3f7','#e8643a','#ffb74d','#81c784','#ce93d8','#80deea','#f48fb1'];
+  let wcData = [];
+
+  window.wcSubmit = async function() {
+    const input = document.getElementById('wc-input');
+    const word  = input.value.trim();
+    if (!word) return;
+    const btn = document.getElementById('wc-btn');
+    btn.disabled = true;
+    try {
+      await addDoc(wordsRef, { word, created_at: serverTimestamp() });
+      input.value = '';
+    } catch(e) { console.error(e); }
+    finally    { btn.disabled = false; }
+  };
+
+  document.getElementById('wc-input')?.addEventListener('keypress', e => {
+    if (e.key === 'Enter') window.wcSubmit();
+  });
+  document.getElementById('wc-btn')?.addEventListener('click', window.wcSubmit);
+
+  onSnapshot(query(wordsRef, orderBy('created_at', 'asc')), snap => {
+    const words = [];
+    snap.forEach(d => words.push(d.data().word));
+    const counts = {};
+    words.forEach(w => counts[w] = (counts[w] || 0) + 1);
+    wcData = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+    const totalEl  = document.getElementById('wc-total');
+    const uniqueEl = document.getElementById('wc-unique');
+    if (totalEl)  totalEl.textContent  = words.length;
+    if (uniqueEl) uniqueEl.textContent = wcData.length;
+
+    const listEl = document.getElementById('wc-list');
+    if (listEl) {
+      listEl.innerHTML = wcData.slice(0, 12).map(([w, c]) =>
+        `<div style="display:flex;justify-content:space-between;padding:4px 0;
+                     border-bottom:1px solid rgba(255,255,255,0.06);">
+          <span>${w}</span>
+          <span style="color:var(--accent);font-weight:700;">${c}</span>
+        </div>`
+      ).join('') || '<div style="color:#555;padding:8px 0;">尚無資料</div>';
+    }
+
+    const emptyEl = document.getElementById('wc-empty');
+    if (emptyEl) emptyEl.style.display = wcData.length > 0 ? 'none' : '';
+    drawWordCloud();
+  });
+
+  function drawWordCloud() {
+    const canvas = document.getElementById('wc-canvas');
+    if (!canvas || typeof WordCloud === 'undefined') return;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width < 10 || rect.height < 10) return;
+    canvas.width  = rect.width;
+    canvas.height = rect.height;
+    if (wcData.length === 0) return;
+    const maxCount = wcData[0][1];
+    WordCloud(canvas, {
+      list: wcData.map(([w, c]) => [w, Math.max(18, Math.round((c / maxCount) * 72))]),
+      gridSize: 6,
+      weightFactor: 1,
+      fontFamily: '"Microsoft JhengHei", "Noto Sans TC", sans-serif',
+      color: () => COLORS[Math.floor(Math.random() * COLORS.length)],
+      backgroundColor: 'transparent',
+      rotateRatio: 0.3,
+      shuffle: true,
+    });
+  }
+
+  Reveal.on('slidechanged', e => {
+    if (e.currentSlide?.id === 'slide-wordcloud') setTimeout(drawWordCloud, 150);
+  });
+
+  /* ─────────────────────────────────────
+     ② 單選投票
+  ───────────────────────────────────── */
+  const POLL_OPTIONS = [
+    { id: 'free',  label: '免費試用 Claude.ai' },
+    { id: 'pro',   label: 'Claude Pro（約 $20/月）' },
+    { id: 'max',   label: 'Claude Max（約 $100/月）' },
+    { id: 'api',   label: 'API 自建（按量計費）' },
+  ];
+  const pollRef = doc(fdb, 'agent_swarm_gstack_poll', 'results');
+  const userId  = 'u_' + Math.random().toString(36).slice(2, 9);
+  let   myVote  = null;
+
+  // 渲染投票選項
+  const pollContainer = document.getElementById('poll-options');
+  if (pollContainer) {
+    POLL_OPTIONS.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.id = `poll-btn-${opt.id}`;
+      btn.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span id="poll-check-${opt.id}"
+                style="flex:0 0 22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);
+                       display:flex;align-items:center;justify-content:center;font-size:12px;
+                       transition:all 0.3s;"></span>
+          <span style="flex:1;text-align:left;">${opt.label}</span>
+          <span id="poll-bar-wrap-${opt.id}"
+                style="flex:0 0 140px;height:7px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
+            <div id="poll-bar-${opt.id}"
+                 style="height:100%;width:0;background:var(--accent2);border-radius:4px;transition:width 0.4s;"></div>
+          </span>
+          <span id="poll-pct-${opt.id}"
+                style="flex:0 0 38px;text-align:right;font-size:0.75em;color:#888;">0%</span>
+        </div>
+      `;
+      btn.style.cssText = `
+        width:100%;padding:11px 16px;
+        background:rgba(255,255,255,0.05);
+        border:1px solid rgba(255,255,255,0.1);
+        border-radius:10px;color:#fff;
+        font-size:0.46em;cursor:pointer;
+        font-family:inherit;text-align:left;
+        transition:border-color 0.3s, background 0.3s;
+      `;
+      btn.onmouseenter = () => { if (myVote !== opt.id) btn.style.background = 'rgba(255,255,255,0.08)'; };
+      btn.onmouseleave = () => { if (myVote !== opt.id) btn.style.background = 'rgba(255,255,255,0.05)'; };
+      btn.onclick = () => castVote(opt.id);
+      pollContainer.appendChild(btn);
+    });
+  }
+
+  async function castVote(optId) {
+    myVote = optId;
+    POLL_OPTIONS.forEach(o => {
+      const b = document.getElementById(`poll-btn-${o.id}`);
+      if (b) b.style.borderColor = o.id === optId ? 'var(--accent2)' : 'rgba(255,255,255,0.1)';
+    });
+    const payload = {};
+    payload[`votes.${userId}`] = optId;
+    payload.updated_at = serverTimestamp();
+    await setDoc(pollRef, payload, { merge: true });
+  }
+
+  onSnapshot(pollRef, snap => {
+    const data  = snap.data() || {};
+    const votes = data.votes || {};
+    const counts = {};
+    POLL_OPTIONS.forEach(o => counts[o.id] = 0);
+    Object.values(votes).forEach(v => { if (counts[v] !== undefined) counts[v]++; });
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+    const totalEl = document.getElementById('poll-total');
+    if (totalEl) totalEl.textContent = total;
+
+    POLL_OPTIONS.forEach(opt => {
+      const pct     = total > 0 ? Math.round((counts[opt.id] / total) * 100) : 0;
+      const barEl   = document.getElementById(`poll-bar-${opt.id}`);
+      const pctEl   = document.getElementById(`poll-pct-${opt.id}`);
+      const checkEl = document.getElementById(`poll-check-${opt.id}`);
+      if (barEl)   barEl.style.width = pct + '%';
+      if (pctEl)   pctEl.textContent = pct + '%';
+      if (checkEl && myVote === opt.id) {
+        checkEl.textContent   = '✓';
+        checkEl.style.background   = 'var(--accent2)';
+        checkEl.style.borderColor  = 'var(--accent2)';
+        checkEl.style.color        = '#0d1117';
+        checkEl.style.fontWeight   = '700';
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
